@@ -566,10 +566,10 @@ public class AudibleTrafficAlerts implements Runnable {
         private static class SequentialSoundPlayRunnable implements Runnable {
             private final List<Integer> soundIds;
             private int curSoundIndex = 0;
-            private final Runnable soundPlayCompletionRunnable;
             private final Handler handler;
             private final SoundPool soundPool;
             private final Map<Integer,Long> soundDurationMap;
+            private SoundSequenceOnCompletionListener listener;
 
             private static final float SOUND_PLAY_RATE = 1f;
 
@@ -580,24 +580,19 @@ public class AudibleTrafficAlerts implements Runnable {
                 this.handler = handler;
                 this.soundPool = soundPool;
                 this.soundDurationMap = soundDurationMap;
-                this.soundPlayCompletionRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        if (curSoundIndex < soundIds.size()) {
-                            SequentialSoundPlayRunnable.this.handler.post(SequentialSoundPlayRunnable.this);
-                        } else {
-                            if (listener != null)
-                                listener.onSoundSequenceCompletion(soundIds);
-                        }
-                    }
-                };
+                this.listener = listener;
             }
 
             @Override
             public void run() {
-                final int soundId = this.soundIds.get(curSoundIndex++);
-                soundPool.play(soundId, 1, 1, 1, 0, SOUND_PLAY_RATE);
-                handler.postDelayed(this.soundPlayCompletionRunnable, (long) Math.ceil(soundDurationMap.get(soundId)/SOUND_PLAY_RATE));
+                if (curSoundIndex < soundIds.size()) {
+                    final int soundId = this.soundIds.get(curSoundIndex++);
+                    soundPool.play(soundId, 1, 1, 1, 0, SOUND_PLAY_RATE);
+                    handler.postDelayed(this, (long) Math.ceil(soundDurationMap.get(soundId) / SOUND_PLAY_RATE));
+                } else {
+                    if (listener != null)
+                        listener.onSoundSequenceCompletion(soundIds);
+                }
             }
         }
     }
