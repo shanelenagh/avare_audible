@@ -76,7 +76,7 @@ public class AudibleTrafficAlerts implements Runnable {
     private float closestApproachThreasholdNmi = 3.0f;
     private float criticalClosingAlertRatio = .4f;
 
-    private static volatile Thread runnerThread;
+    private static volatile Thread alertQueueProcessorThread;
     // This object's monitor is used for inter-thread communication and synchronization
     private static final LinkedList<AlertItem> alertQueue = new LinkedList<>();
     private static AudibleTrafficAlerts singleton;
@@ -199,9 +199,9 @@ public class AudibleTrafficAlerts implements Runnable {
     public synchronized static AudibleTrafficAlerts getAndStartAudibleTrafficAlerts(Context ctx) {
         if (singleton == null)
             singleton = new AudibleTrafficAlerts(ctx);
-        if (runnerThread == null || runnerThread.isInterrupted()) {
-            runnerThread = new Thread(singleton, "AudibleAlerts");
-            runnerThread.start();
+        if (alertQueueProcessorThread == null || alertQueueProcessorThread.isInterrupted()) {
+            alertQueueProcessorThread = new Thread(singleton, "AudibleAlerts");
+            alertQueueProcessorThread.start();
         }
 
         return singleton;
@@ -209,11 +209,11 @@ public class AudibleTrafficAlerts implements Runnable {
 
     public static synchronized void stopAudibleTrafficAlerts() {
         synchronized (alertQueue) {
-            if (runnerThread != null) {
-                if (!runnerThread.isInterrupted()) {
-                    runnerThread.interrupt();
+            if (alertQueueProcessorThread != null) {
+                if (!alertQueueProcessorThread.isInterrupted()) {
+                    alertQueueProcessorThread.interrupt();
                 }
-                runnerThread = null;
+                alertQueueProcessorThread = null;
             }
             alertQueue.clear();
             if (singleton != null) {
@@ -310,8 +310,8 @@ public class AudibleTrafficAlerts implements Runnable {
      * @param alertDistance Horizontal istance in which alert is triggered
      * @param ownAltitude Ownship altitude
      */
-    public void handleAudibleAlerts(Location ownLocation, LinkedList<Traffic> allTraffic,
-                                    float alertDistance, int ownAltitude)
+    public void handleAudibleAlerts(final Location ownLocation, final SparseArray<Traffic> allTraffic,
+                                    final float alertDistance, final int ownAltitude)
     {
         if(ownLocation == null) {
             return; // need own location for alerts
