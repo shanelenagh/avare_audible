@@ -628,24 +628,28 @@ public class AudibleTrafficAlerts implements Runnable {
         synchronized (alertQueue) {
             final int alertIndex = alertQueue.indexOf(alert);
             if (alertIndex == -1) {
-                // If this is a "critically close" alert, put it ahead of the first non-critically close alert
-                final int alertQueueSize;
-                if (alert.closingEvent != null && alert.closingEvent.isCriticallyClose && (alertQueueSize = alertQueue.size()) > 0) {
-                    for (int i = 0; i < alertQueueSize; i++) {
-                        final Alert curAlert = alertQueue.get(i);
-                        if (curAlert.closingEvent == null || !curAlert.closingEvent.isCriticallyClose) {
-                            alertQueue.add(i, alert);
-                            break;
-                        }
-                    }
-                } else {
-                    alertQueue.add(alert);
-                }
+                enqueuePerCriticality(alert);
             } else {    // if already in queue, update with the most recent data prior to speaking
                 alertQueue.set(alertIndex, alert);
             }
             if (!soundPlayer.isPlaying && System.currentTimeMillis() > nextAvailableAlertTime) // Don't wake up consumer if he can't work now anyway
                 alertQueue.notifyAll();
+        }
+    }
+
+    private void enqueuePerCriticality(final Alert alert) {
+        // If this is a "critically close" alert, put it ahead of the first non-critically close alert
+        final int alertQueueSize;
+        if (alert.closingEvent != null && alert.closingEvent.isCriticallyClose && (alertQueueSize = alertQueue.size()) > 0) {
+            for (int i = 0; i < alertQueueSize; i++) {
+                final Alert curAlert = alertQueue.get(i);
+                if (curAlert.closingEvent == null || !curAlert.closingEvent.isCriticallyClose) {
+                    alertQueue.add(i, alert);
+                    break;
+                }
+            }
+        } else {
+            alertQueue.add(alert);
         }
     }
 
