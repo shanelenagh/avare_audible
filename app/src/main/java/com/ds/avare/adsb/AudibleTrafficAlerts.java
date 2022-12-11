@@ -97,7 +97,7 @@ public class AudibleTrafficAlerts implements Runnable {
     protected final ExecutorService trafficAlertProducerExecutor = Executors.newSingleThreadExecutor();
     private static AudibleTrafficAlerts singleton;
     // This object's monitor is used for inter-thread communication and synchronization
-    private final List<Alert> alertQueue = new ArrayList<>();
+    private final List<Alert> alertQueue;
 
     // Constants
     private static final float MPS_TO_KNOTS_CONV = 1.0f/0.514444f;
@@ -164,12 +164,13 @@ public class AudibleTrafficAlerts implements Runnable {
     }
 
     private AudibleTrafficAlerts(Context ctx) {
-        this(new SequentialSoundPoolPlayer(), ctx);
+        this(new SequentialSoundPoolPlayer(), ctx, new ArrayList<>());
     }
 
-    protected AudibleTrafficAlerts(SequentialSoundPoolPlayer sp, Context ctx)
+    protected AudibleTrafficAlerts(SequentialSoundPoolPlayer sp, Context ctx, List<Alert> alertQueue)
     {
         this.phoneticAlphaIcaoSequenceQueue = new ArrayList<>();
+        this.alertQueue = alertQueue;
         this.lastCallsignAlertTime = new HashMap<>();
         this.lastDistanceUpdate = new HashMap<>();
         this.soundPlayer = sp;

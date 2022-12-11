@@ -199,7 +199,7 @@ public class AudibleTrafficAlertsTest {
         final int[] seconds = new int[secondsCount];
         for (int i = 0; i < secondsCount; i++)
             seconds[i] = 2000 + i;
-        return new AudibleTrafficAlerts(getMockSoundPlayer(), mock(Context.class));
+        return new AudibleTrafficAlerts(getMockSoundPlayer(), mock(Context.class), new ArrayList<AudibleTrafficAlerts.Alert>());
     }
 
 
