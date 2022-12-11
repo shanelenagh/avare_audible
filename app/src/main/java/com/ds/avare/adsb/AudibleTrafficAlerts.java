@@ -281,7 +281,7 @@ public class AudibleTrafficAlerts implements Runnable {
                         {
                             playAlert(alert);
                         } else {    // need to wait, or let someone else go for now
-                            waitOrYieldForNextPlaySlot(alertQueueSize, alert, timeToWaitForThisCallsign, timeToWaitForAny);
+                            yieldOrWaitForNextPlaySlot(alertQueueSize, alert, timeToWaitForThisCallsign, timeToWaitForAny);
                         }
                     } else {
                         // No-one to process now, so wait for notification of queue update from producer
@@ -295,7 +295,7 @@ public class AudibleTrafficAlerts implements Runnable {
         }
     }
 
-    private void waitOrYieldForNextPlaySlot(final int alertQueueSize, final Alert alert,
+    private void yieldOrWaitForNextPlaySlot(final int alertQueueSize, final Alert alert,
                                             final long timeToWaitForThisCallsign, final long timeToWaitForAny) throws InterruptedException
     {
         if (timeToWaitForAny > 0 || (timeToWaitForThisCallsign > 0 && alertQueueSize == 1)) {
