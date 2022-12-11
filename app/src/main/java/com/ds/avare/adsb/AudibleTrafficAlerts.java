@@ -97,7 +97,7 @@ public class AudibleTrafficAlerts implements Runnable {
     protected final ExecutorService trafficAlertProducerExecutor = Executors.newSingleThreadExecutor();
     private static AudibleTrafficAlerts singleton;
     // This object's monitor is used for inter-thread communication and synchronization
-    private static final List<Alert> alertQueue = new ArrayList<>();
+    private final List<Alert> alertQueue = new ArrayList<>();
 
     // Constants
     private static final float MPS_TO_KNOTS_CONV = 1.0f/0.514444f;
@@ -231,9 +231,6 @@ public class AudibleTrafficAlerts implements Runnable {
     public synchronized static AudibleTrafficAlerts getAndStartAudibleTrafficAlerts(Context ctx) {
         if (singleton == null) {
             singleton = new AudibleTrafficAlerts(ctx);
-            synchronized (alertQueue) {
-                alertQueue.clear(); // start with a clean slate
-            }
         }
         if (alertQueueProcessingConsumerThread == null || alertQueueProcessingConsumerThread.isInterrupted()) {
             alertQueueProcessingConsumerThread = new Thread(singleton, "AudibleAlerts");
@@ -244,22 +241,20 @@ public class AudibleTrafficAlerts implements Runnable {
     }
 
     public static synchronized void stopAudibleTrafficAlerts() {
-        synchronized (alertQueue) {
-            if (alertQueueProcessingConsumerThread != null) {
-                if (!alertQueueProcessingConsumerThread.isInterrupted()) {
-                    alertQueueProcessingConsumerThread.interrupt();
+        if (singleton != null)
+            synchronized (singleton.alertQueue) {
+                if (alertQueueProcessingConsumerThread != null) {
+                    if (!alertQueueProcessingConsumerThread.isInterrupted()) {
+                        alertQueueProcessingConsumerThread.interrupt();
+                    }
+                    alertQueueProcessingConsumerThread = null;
                 }
-                alertQueueProcessingConsumerThread = null;
-            }
-            alertQueue.clear();
-            if (singleton != null) {
                 try {
                     singleton.soundPlayer.close();
                 } catch (Exception e) { /* At least we tried to close resources */ }
                 singleton = null;
                 System.gc();    // Good-faith effort to reclaim feature memory, if possible
             }
-        }
     }
 
     /**
