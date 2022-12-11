@@ -284,21 +284,9 @@ public class AudibleTrafficAlerts implements Runnable {
                                     || (timeToWaitForThisCallsign = (long) (this.maxAlertFrequencySeconds * 1000.0)
                                             - (System.currentTimeMillis() - lastCallsignAlertTime.get(alert.trafficCallsign))) <= 0)))    // ...otherwise, respect config for delay between same callsign
                         {
-                            lastCallsignAlertTime.put(alert.trafficCallsign, System.currentTimeMillis());
-                            final long soundDuration = soundPlayer.playSequence(buildAlertSoundIdSequence(alertQueue.get(0), speakingRate), speakingRate);
-                            alertQueue.remove(0);
-                            nextAvailableAlertTime = System.currentTimeMillis() + soundDuration + MIN_ALERT_SEPARATION_MS;
-                            alertQueue.wait(soundDuration + MIN_ALERT_SEPARATION_MS);   // wait thread until alert finished playing
+                            playAlert(alert);
                         } else {    // need to wait, or let someone else go for now
-                            if (timeToWaitForAny > 0 || (timeToWaitForThisCallsign > 0 && alertQueueSize == 1)) {
-                                // Don't rattle off multiple alerts too fast, even if there are distinct callsigns, and honor desired separation between alerts from same callsign
-                                final long timeToWait = Math.max(timeToWaitForAny, timeToWaitForThisCallsign);
-                                nextAvailableAlertTime = System.currentTimeMillis() + timeToWait;
-                                alertQueue.wait(timeToWait);
-                            } else if (timeToWaitForAny <= 0 && alertQueueSize > 1) { // This one can't go, but let next in line try
-                                alertQueue.remove(0);
-                                alertQueue.add(Math.min(1, alertQueueSize), alert); // Put it to second in line to wait
-                            }
+                            waitOrYieldForNextPlaySlot(alertQueueSize, alert, timeToWaitForThisCallsign, timeToWaitForAny);
                         }
                     } else {
                         // No-one to process now, so wait for notification of queue update from producer
@@ -310,6 +298,28 @@ public class AudibleTrafficAlerts implements Runnable {
                 }
             }
         }
+    }
+
+    private void waitOrYieldForNextPlaySlot(final int alertQueueSize, final Alert alert,
+                                            final long timeToWaitForThisCallsign, final long timeToWaitForAny) throws InterruptedException
+    {
+        if (timeToWaitForAny > 0 || (timeToWaitForThisCallsign > 0 && alertQueueSize == 1)) {
+            // Don't rattle off multiple alerts too fast, even if there are distinct callsigns, and honor desired separation between alerts from same callsign
+            final long timeToWait = Math.max(timeToWaitForAny, timeToWaitForThisCallsign);
+            nextAvailableAlertTime = System.currentTimeMillis() + timeToWait;
+            alertQueue.wait(timeToWait);
+        } else if (timeToWaitForAny <= 0 && alertQueueSize > 1) { // This one can't go, but let next in line try
+            alertQueue.remove(0);
+            alertQueue.add(Math.min(1, alertQueueSize), alert); // Put it to second in line to wait
+        }
+    }
+
+    private void playAlert(final Alert alert) throws InterruptedException {
+        lastCallsignAlertTime.put(alert.trafficCallsign, System.currentTimeMillis());
+        final long soundDuration = soundPlayer.playSequence(buildAlertSoundIdSequence(alertQueue.get(0), speakingRate), speakingRate);
+        alertQueue.remove(0);
+        nextAvailableAlertTime = System.currentTimeMillis() + soundDuration + MIN_ALERT_SEPARATION_MS;
+        alertQueue.wait(soundDuration + MIN_ALERT_SEPARATION_MS);   // wait thread until alert finished playing
     }
 
     /**
