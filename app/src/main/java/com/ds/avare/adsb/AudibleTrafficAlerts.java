@@ -310,10 +310,11 @@ public class AudibleTrafficAlerts implements Runnable {
     }
 
     private void playAlert(final Alert alert) throws InterruptedException {
-        lastCallsignAlertTime.put(alert.trafficCallsign, System.currentTimeMillis());
         final long soundDuration = soundPlayer.playSequence(buildAlertSoundIdSequence(alertQueue.get(0), speakingRate), speakingRate);
+        final long alertTime = System.currentTimeMillis();
+        lastCallsignAlertTime.put(alert.trafficCallsign, alertTime);
+        nextAvailableAlertTime = alertTime + soundDuration + MIN_ALERT_SEPARATION_MS;
         alertQueue.remove(0);
-        nextAvailableAlertTime = System.currentTimeMillis() + soundDuration + MIN_ALERT_SEPARATION_MS;
         alertQueue.wait(soundDuration + MIN_ALERT_SEPARATION_MS);   // wait thread until alert finished playing
     }
 
