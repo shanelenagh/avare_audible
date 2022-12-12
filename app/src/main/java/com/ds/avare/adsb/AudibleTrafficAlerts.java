@@ -281,7 +281,7 @@ public class AudibleTrafficAlerts implements Runnable {
                                             - (now - lastCallsignAlertTime.get(alert.trafficCallsign))) <= 0)))    // ...otherwise, respect config for delay between same callsign
                         {
                             playAlert(alert);
-                        } else {    // need to wait, or let someone else go for now
+                        } else { // need to let someone else go for now, or just wait if no-one next
                             yieldOrWaitForNextPlaySlot(alertQueueSize, alert, timeToWaitForThisCallsign, timeToWaitForAny);
                         }
                     } else {
