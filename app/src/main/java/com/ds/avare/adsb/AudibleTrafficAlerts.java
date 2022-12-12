@@ -272,13 +272,13 @@ public class AudibleTrafficAlerts implements Runnable {
                     final int alertQueueSize = alertQueue.size();
                     if (alertQueueSize > 0 && !soundPlayer.isPlaying) {
                         final Alert alert = alertQueue.get(0);
-                        long timeToWaitForThisCallsign = 0;
+                        long timeToWaitForThisCallsign = 0, now = System.currentTimeMillis();
                         final long timeToWaitForAny;
-                        if ((timeToWaitForAny = nextAvailableAlertTime - System.currentTimeMillis()) <= 0 // separate all alerts for clarity
+                        if ((timeToWaitForAny = nextAvailableAlertTime - now) <= 0                        // separate all alerts for clarity
                                 && ((alert.closingEvent != null && alert.closingEvent.isCriticallyClose)  // critical closing events can repeat...
                                     || (!lastCallsignAlertTime.containsKey(alert.trafficCallsign)
                                     || (timeToWaitForThisCallsign = (long) (this.maxAlertFrequencySeconds * 1000.0)
-                                            - (System.currentTimeMillis() - lastCallsignAlertTime.get(alert.trafficCallsign))) <= 0)))    // ...otherwise, respect config for delay between same callsign
+                                            - (now - lastCallsignAlertTime.get(alert.trafficCallsign))) <= 0)))    // ...otherwise, respect config for delay between same callsign
                         {
                             playAlert(alert);
                         } else {    // need to wait, or let someone else go for now
