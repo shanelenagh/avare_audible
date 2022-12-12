@@ -558,7 +558,7 @@ public class AudibleTrafficAlerts implements Runnable {
 					final String lastDistanceUpdateKey = lastDistanceUpdate.get(traffic.mCallSign);
 					final double currentDistance;
 					if (
-						(lastDistanceUpdateKey == null || !lastDistanceUpdateKey.equals(distanceCalcUpdateKey))
+						(lastDistanceUpdateKey == null || !lastDistanceUpdateKey.equals(distanceCalcUpdateKey)) // is there a truly new update?
 						// traffic is within configured "cylinder" of audible alert (radius & height/alt)
 						&& Math.abs(altDiff) < trafficAlertsHeight
 						&& (currentDistance = greatCircleDistance(
