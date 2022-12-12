@@ -81,7 +81,7 @@ public class AudibleTrafficAlerts implements Runnable {
     private final List<String> phoneticAlphaIcaoSequenceQueue;
     private final Map<String,Long> lastCallsignAlertTime;
     private final Map<String,String> lastDistanceUpdate;
-    private volatile long nextAvailableAlertTime = 0;
+    volatile long nextAvailableAlertTime = 0;
 
     // Configuration settings
     private boolean topGunDorkMode = false;
@@ -114,12 +114,12 @@ public class AudibleTrafficAlerts implements Runnable {
     }
 
     protected static final class Alert {
-        private final String trafficCallsign;
-        private final double distanceNmi;
-        private final ClosingEvent closingEvent;
-        private final int clockHour;
-        private final double altitudeDiff;
-        private final int vspeed;
+        public final String trafficCallsign;
+        public final double distanceNmi;
+        public final ClosingEvent closingEvent;
+        public final int clockHour;
+        public final double altitudeDiff;
+        public final int vspeed;
 
         protected Alert(String trafficCallsign, int clockHour, double altitudeDiff, ClosingEvent closingEvent, double distnaceNmi, int vspeed) {
             this.trafficCallsign = trafficCallsign;
@@ -145,10 +145,10 @@ public class AudibleTrafficAlerts implements Runnable {
         }
 
         protected static final class ClosingEvent {
-            private final double closingTimeSec;
-            private final double closestApproachDistanceNmi;
-            private final long eventTimeMillis;
-            private final boolean isCriticallyClose;
+            public final double closingTimeSec;
+            public final double closestApproachDistanceNmi;
+            public final long eventTimeMillis;
+            public final boolean isCriticallyClose;
 
             public ClosingEvent(double closingTimeSec, double closestApproachDistanceNmi, boolean isCriticallyClose) {
                 this.closingTimeSec = closingTimeSec;
@@ -757,7 +757,7 @@ public class AudibleTrafficAlerts implements Runnable {
         private final Map<Integer, Long> soundDurationMap;
         private final List<Integer> loadedSounds;
         private final Handler handler;
-        private volatile boolean isPlaying = false;
+        volatile boolean isPlaying = false;
         private final MediaMetadataRetriever metaRetriever = new MediaMetadataRetriever();
         private final List<Integer> soundIdsToLoad;
         private SoundSequenceOnCompletionListener listener;
@@ -843,8 +843,7 @@ public class AudibleTrafficAlerts implements Runnable {
             return Long.parseLong(durStr);
         }
 
-        @Override
-        public void close() throws Exception {
+        public final void close() throws Exception {
             soundPool.release();
             metaRetriever.release();
         }
@@ -853,14 +852,14 @@ public class AudibleTrafficAlerts implements Runnable {
          * Runnable to put on Android looper for playing each alert (sound sequence)
          */
         private static class SequentialSoundPlayRunnable implements Runnable {
-            private final List<Integer> soundIds;
+            public final List<Integer> soundIds;
             private int curSoundIndex = 0;
-            private final Handler handler;
-            private final SoundPool soundPool;
-            private final SoundSequenceOnCompletionListener listener;
-            private final long[] delayDurations;
+            public final Handler handler;
+            public final SoundPool soundPool;
+            public final SoundSequenceOnCompletionListener listener;
+            public final long[] delayDurations;
             private long totalDuration;
-            private final float speakingRate;
+            public final float speakingRate;
 
             public SequentialSoundPlayRunnable(List<Integer> soundIds, SoundSequenceOnCompletionListener listener,
                                                Handler handler, SoundPool soundPool, Map<Integer,Long> soundDurationMap, final float speakingRate)
