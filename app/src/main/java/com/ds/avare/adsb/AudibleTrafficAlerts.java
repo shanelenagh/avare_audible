@@ -587,7 +587,7 @@ public class AudibleTrafficAlerts implements Runnable {
         return val == null ? defaultVal : val;
     }
 
-    private Alert.ClosingEvent determineClosingEvent(final Location ownLocation, final Traffic traffic, final double currentDistance,
+    private static Alert.ClosingEvent determineClosingEvent(final Location ownLocation, final Traffic traffic, final double currentDistance,
         final int ownAltitude, final int ownVspeed, final int closingTimeThresholdSeconds, final float closestApproachThresholdNmi,
         final float criticalClosingAlertRatio, final float closingAlertAltitude)
     {
