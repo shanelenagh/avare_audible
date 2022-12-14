@@ -723,19 +723,21 @@ public class AudibleTrafficAlerts implements Runnable {
                                            final float heading1, final float heading2, final int velocity1, final int velocity2)
     {
         // Use cosine of average of two latitudes, to give some weighting for lesser intra-lon distance at higher latitudes
+        final double heading1Rad = Math.toRadians(heading1), heading2Rad = Math.toRadians(heading2);
         final double a = (lon2 - lon1) * (60.0000 * Math.cos(Math.toRadians((lat1+lat2)/2.0000)));
-        final double b = velocity2*Math.sin(Math.toRadians(heading2)) - velocity1*Math.sin(Math.toRadians(heading1));
+        final double b = velocity2*Math.sin(heading2Rad) - velocity1*Math.sin(heading1Rad);
         final double c = (lat2 - lat1) * 60.0000;
-        final double d = velocity2*Math.cos(Math.toRadians(heading2)) - velocity1*Math.cos(Math.toRadians(heading1));
+        final double d = velocity2*Math.cos(heading2Rad) - velocity1*Math.cos(heading1Rad);
 
         return - ((a*b + c*d) / (b*b + d*d));
     }
 
     protected static double[] locationAfterTime(final double lat, final double lon, final float heading, final float velocityInKt, final double timeInHrs, final float altInFeet, final float vspeedInFpm) {
-        final double newLat =  lat + Math.cos(Math.toRadians(heading)) * (velocityInKt/60.00000) * timeInHrs;
+        final double headingRad = Math.toRadians(heading);
+        final double newLat =  lat + Math.cos(headingRad) * (velocityInKt/60.00000) * timeInHrs;
         return new double[]  {
                 newLat,
-                lon + Math.sin(Math.toRadians(heading))
+                lon + Math.sin(headingRad)
                         // Again, use cos of average lat to give some weighting based on shorter intra-lon distance changes at higher latitudes
                         * (velocityInKt / (60.00000*Math.cos(Math.toRadians((newLat+lat)/2.0000))))
                         * timeInHrs,
