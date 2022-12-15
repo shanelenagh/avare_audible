@@ -24,64 +24,52 @@ public class AudibleTrafficAlertsTest {
 
     @Test
     public void angleFromCoordinate_straightUp() {
-        Assert.assertEquals(0, AudibleTrafficAlerts.angleFromCoordinate(0, 0, 90, 0), 0);
+        Assert.assertEquals(0, angleTest(0, 0, 90, 0), 0);
     }
 
     @Test
     public void angleFromCoordinate_east() {
-        Assert.assertEquals(90, AudibleTrafficAlerts.angleFromCoordinate(0, 0, 0, 45), 0);
+        Assert.assertEquals(90, angleTest(0, 0, 0, 45), 0);
     }
 
     @Test
     public void angleFromCoordinate_west() {
-        Assert.assertEquals(270, AudibleTrafficAlerts.angleFromCoordinate(0, 90, 0, 45), 0);
+        Assert.assertEquals(270, angleTest(0, 90, 0, 45), 0);
     }
 
     @Test
     public void angleFromCoordinate_diagonal() {
-        Assert.assertEquals(225, AudibleTrafficAlerts.angleFromCoordinate(43.5439, -96.730, 42.57, -98.0421), 0.5);
+        Assert.assertEquals(225, angleTest(43.5439, -96.730, 42.57, -98.0421), 0.5);
     }
 
     @Test
     public void nearestClockHourFromHeadingAndLocations_east() {
-        Assert.assertEquals(3,
-                AudibleTrafficAlerts.nearestClockHourFromHeadingAndLocations(
-                        0, 0, 0, 45, 0));
+        Assert.assertEquals(3, clockHourTest(0, 0, 0, 45, 0));
     }
 
     @Test
     public void nearestClockHourFromHeadingAndLocations_nearEnoughToEastRounded() {
-        Assert.assertEquals(3,
-                AudibleTrafficAlerts.nearestClockHourFromHeadingAndLocations(
-                        0, 0, 0, 45, 5));
+        Assert.assertEquals(3, clockHourTest(0, 0, 0, 45, 5));
     }
 
     @Test
     public void nearestClockHourFromHeadingAndLocations_straightBehindFromAnAngle() {
-        Assert.assertEquals(6,
-                AudibleTrafficAlerts.nearestClockHourFromHeadingAndLocations(
-                        43.5439, -96.730, 42.57, -98.0421, 44.999));
+        Assert.assertEquals(6, clockHourTest(43.5439, -96.730, 42.57, -98.0421, 44.999f));
     }
 
     @Test
     public void nearestClockHourFromHeadingAndLocations_oneMinuteToMidnightRounded() {
-        Assert.assertEquals(12,
-                AudibleTrafficAlerts.nearestClockHourFromHeadingAndLocations(
-                        43.5439, -96.730, 44.8402, -96.7621, 0));
+        Assert.assertEquals(12, clockHourTest(43.5439, -96.730, 44.8402, -96.7621, 0));
     }
 
     @Test
     public void nearestClockHourFromHeadingAndLocations_oneMinutePastMidnightRounded() {
-        Assert.assertEquals(12,
-                AudibleTrafficAlerts.nearestClockHourFromHeadingAndLocations(
-                        43.5439, -96.730, 48.034, -96.654, 0));
+        Assert.assertEquals(12, clockHourTest(43.5439, -96.730, 48.034, -96.654, 0));
     }
 
     @Test
     public void nearestClockHourFromHeadingAndLocations_nearlySouthAndIFacingSouth() {
-        Assert.assertEquals(12,
-                AudibleTrafficAlerts.nearestClockHourFromHeadingAndLocations(
-                        43.5439, -96.730, 39.5718, -96.735, 180));
+        Assert.assertEquals(12, clockHourTest(43.5439, -96.730, 39.5718, -96.735, 180));
     }
 
     @Test
@@ -89,7 +77,7 @@ public class AudibleTrafficAlertsTest {
         final double lat1 = 45, lat2 = 45, lon1 = -95, lon2 = -94;
         final int velocity1 = 60, velocity2 = 60;
         final float heading1 = 270, heading2 = 90;
-        final double caTime = AudibleTrafficAlerts.closestApproachTime(lat1, lon1, lat2, lon2, heading1, heading2, velocity1, velocity2);
+        final double caTime = closestApproachTimeTest(lat1, lon1, lat2, lon2, heading1, heading2, velocity1, velocity2);
         Assert.assertEquals("Closest approach seconds", .35, Math.abs(caTime), .1);
     }
 
@@ -98,7 +86,7 @@ public class AudibleTrafficAlertsTest {
         final double lat1 = 45, lat2 = 46, lon1 = -95, lon2 = -95;
         final int velocity1 = 60, velocity2 = 60;
         final float heading1 = 180, heading2 = 0;
-        final double caTime = AudibleTrafficAlerts.closestApproachTime(lat1, lon1, lat2, lon2, heading1, heading2, velocity1, velocity2);
+        final double caTime = closestApproachTimeTest(lat1, lon1, lat2, lon2, heading1, heading2, velocity1, velocity2);
         Assert.assertEquals("Closest approach seconds", .5, Math.abs(caTime), .1);
     }
 
@@ -107,7 +95,7 @@ public class AudibleTrafficAlertsTest {
         final double lat = 41, lon = -95, time = 1 /* hour */;
         final float velocity = 60; /* knots */
         final float heading = 0; /* North */
-        double[] latLonOverTime = AudibleTrafficAlerts.locationAfterTime(lat, lon, heading, velocity, time,200, 20);
+        final double[] latLonOverTime = locationAfterTimeTest(lat, lon, heading, velocity, time,200, 20);
         Assert.assertEquals("new lat", 42, latLonOverTime[0], 0.1);
         Assert.assertEquals("new lon the same", lon, latLonOverTime[1], 0.1);
     }
@@ -117,7 +105,7 @@ public class AudibleTrafficAlertsTest {
         final double lat = 10, lon = -95, time = 1 /* hour */;
         final float velocity = 60; /* knots */
         final float heading = 90; /* East */
-        double[] latLonOverTime = AudibleTrafficAlerts.locationAfterTime(lat, lon, heading, velocity, time, 200, 20);
+        final double[] latLonOverTime = locationAfterTimeTest(lat, lon, heading, velocity, time, 200, 20);
         Assert.assertEquals("new lat the same", lat, latLonOverTime[0], 0.0);
         Assert.assertEquals("new lon", -94, latLonOverTime[1], 0.1);
     }
@@ -127,7 +115,7 @@ public class AudibleTrafficAlertsTest {
         final double lat = 41.184505, lon = -95.948730, time = .008952 /* hour */;
         final float velocity = 37; /* knots */
         final float heading = 90; /* East */
-        double[] latLonOverTime = AudibleTrafficAlerts.locationAfterTime(lat, lon, heading, velocity, time, 200, 20);
+        final double[] latLonOverTime = locationAfterTimeTest(lat, lon, heading, velocity, time, 200, 20);
         Assert.assertEquals("new lat the same", lat, latLonOverTime[0], 0.0);
         Assert.assertNotEquals("new lon", lon, latLonOverTime[1], 0.0000001);
     }
@@ -137,7 +125,7 @@ public class AudibleTrafficAlertsTest {
         final double lat = 10, lon = -95, time = .5 /* hour */;
         final float velocity = 60; /* knots */
         final float heading = 90; /* East */
-        double[] latLonOverTime = AudibleTrafficAlerts.locationAfterTime(lat, lon, heading, velocity, time, 20, 20);
+        final double[] latLonOverTime = locationAfterTimeTest(lat, lon, heading, velocity, time, 20, 20);
         Assert.assertEquals("new lat the same", lat, latLonOverTime[0], 0.0);
         Assert.assertEquals("new lon", -94.5, latLonOverTime[1], 0.1);
     }
@@ -227,6 +215,33 @@ public class AudibleTrafficAlertsTest {
                     return regurg;
                 });
         return sp;
+    }
+
+    private static int clockHourTest(double lat1, double lon1, double lat2, double lon2, float heading1) {
+        return AudibleTrafficAlerts.nearestClockHourFromHeadingAndLocations(
+                new AudibleTrafficAlerts.AircraftTrig(lat1, lon1, heading1), new AudibleTrafficAlerts.AircraftTrig(lat2, lon2, 0));
+    }
+
+    private static double angleTest(double lat1, double lon1, double lat2, double lon2) {
+        return AudibleTrafficAlerts.angleFromCoordinate(
+                new AudibleTrafficAlerts.AircraftTrig(lat1, lon1, 0), new AudibleTrafficAlerts.AircraftTrig(lat2, lon2, 0));
+    }
+
+    private static double closestApproachTimeTest(double lat1, double lon1, double lat2, double lon2,
+                                                  float heading1, float heading2, float velocity1, float velocity2)
+    {
+        final AudibleTrafficAlerts.AircraftTrig ownAcTrig = new AudibleTrafficAlerts.AircraftTrig(lat1, lon1, heading1),
+                trafficAcTrig = new AudibleTrafficAlerts.AircraftTrig(lat2, lon2, heading2);
+        ownAcTrig.computeHeadingTrig();
+        trafficAcTrig.computeHeadingTrig();
+        return AudibleTrafficAlerts.closestApproachTime(ownAcTrig, trafficAcTrig, velocity1, velocity2
+        );
+    }
+
+    private static double[] locationAfterTimeTest(double lat, double lon, float heading, float velocity, double time, float altitude, float vspeed) {
+        final AudibleTrafficAlerts.AircraftTrig acTrig = new AudibleTrafficAlerts.AircraftTrig(lat, lon, heading);
+        acTrig.computeHeadingTrig();
+        return AudibleTrafficAlerts.locationAfterTime(acTrig, velocity, time, altitude, vspeed);
     }
 
     private static class CapturingSingleThreadExecutor implements Executor {

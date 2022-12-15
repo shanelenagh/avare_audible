@@ -104,7 +104,7 @@ public class AudibleTrafficAlerts implements Runnable {
     private static final long MIN_ALERT_SEPARATION_MS = 750;
 
     protected enum DistanceCalloutOption {
-        NONE, ROUNDED, DECIMAL;
+        NONE, ROUNDED, DECIMAL
     }
     protected enum TrafficIdCalloutOption {
         NONE, PHONETIC_ALPHA_ID, FULL_CALLSIGN
@@ -121,7 +121,7 @@ public class AudibleTrafficAlerts implements Runnable {
         public final double altitudeDiff;
         public final int vspeed;
 
-        protected Alert(String trafficCallsign, int clockHour, double altitudeDiff, ClosingEvent closingEvent, double distnaceNmi, int vspeed) {
+        Alert(String trafficCallsign, int clockHour, double altitudeDiff, ClosingEvent closingEvent, double distnaceNmi, int vspeed) {
             this.trafficCallsign = trafficCallsign;
             this.clockHour = clockHour;
             this.altitudeDiff = altitudeDiff;
@@ -131,7 +131,7 @@ public class AudibleTrafficAlerts implements Runnable {
         }
 
         @Override
-        public final int hashCode() {
+        public int hashCode() {
             return trafficCallsign.hashCode();
         }
 
@@ -160,6 +160,47 @@ public class AudibleTrafficAlerts implements Runnable {
             public double closingSeconds() {
                 return closingTimeSec-(System.currentTimeMillis()-eventTimeMillis)/1000.000;
             }
+        }
+    }
+
+    protected static final class AircraftTrig {
+        public final double latDeg;
+        public final double lonDeg;
+        public final double latRad;
+        public final double lonRad;
+        public final float heading;
+        public final double latSin;
+        public final double latCos;
+        public final double lonSin;
+        public final double lonCos;
+        double headingSin;
+        double headingCos;
+
+        AircraftTrig(double latDeg, double lonDeg, float heading) {
+            this.latDeg = latDeg;
+            this.lonDeg = lonDeg;
+            this.latRad = Math.toRadians(latDeg);
+            this.lonRad = Math.toRadians(lonDeg);
+            this.heading = heading;
+            this.latSin = Math.sin(latRad);
+            this.latCos = Math.cos(latRad);
+            this.lonSin = Math.sin(lonRad);
+            this.lonCos = Math.cos(lonRad);
+
+        }
+
+        public void computeHeadingTrig() {
+            final double headingRad = Math.toRadians(heading);
+            this.headingSin = Math.sin(headingRad);
+            this.headingCos = Math.cos(headingRad);
+        }
+
+        public AircraftTrig(Location l) {
+            this(l.getLatitude(), l.getLongitude(), l.getBearing());
+        }
+
+        public AircraftTrig(Traffic t) {
+            this(t.mLat, t.mLon, t.mHeading);
         }
     }
 
@@ -434,7 +475,7 @@ public class AudibleTrafficAlerts implements Runnable {
      * @param alertAudio List of soundId to append to
      * @param numeric Numeric value to speak into alertAudio
      */
-    private final void addNumberSequenceNumericBaseAlertAudio(final List<Integer> alertAudio, final double numeric) {
+    private void addNumberSequenceNumericBaseAlertAudio(final List<Integer> alertAudio, final double numeric) {
         double curNumeric = numeric;    // iteration variable for digit processing
         for (int i = (int) Math.max(Math.log10(numeric), 0); i >= 0; i--) {
             if (i == 0)
@@ -452,7 +493,7 @@ public class AudibleTrafficAlerts implements Runnable {
      * @param alertAudio List of soundId to append to
      * @param numeric Numeric value to speak into alertAudio
      */
-    private final void addColloquialNumericBaseAlertAudio(final List<Integer> alertAudio, final double numeric) {
+    private void addColloquialNumericBaseAlertAudio(final List<Integer> alertAudio, final double numeric) {
         double curNumeric = numeric;    // iteration variable for digit processing
         for (int i = (int) Math.max(Math.log10(numeric), 0); i >= 0; i--) {
             if (i == 0
@@ -559,24 +600,24 @@ public class AudibleTrafficAlerts implements Runnable {
 					final double currentDistance;
 					if (
 						(lastDistanceUpdateKey == null || !lastDistanceUpdateKey.equals(distanceCalcUpdateKey)) // is there a truly new update?
-						// traffic is within configured "cylinder" of audible alert (radius & height/alt)
 						&& Math.abs(altDiff) < trafficAlertsHeight
-						&& (currentDistance = greatCircleDistance(
-							ownLocation.getLatitude(), ownLocation.getLongitude(), traffic.mLat, traffic.mLon
-						)) < trafficAlertsDistanceMinimum
 					) {
-						upsertTrafficAlertQueue(new Alert(traffic.mCallSign,
-								nearestClockHourFromHeadingAndLocations(ownLocation.getLatitude(),
-										ownLocation.getLongitude(), traffic.mLat, traffic.mLon, ownLocation.getBearing()),
-								altDiff,
-								isAudibleClosingAlerts
-										? determineClosingEvent(ownLocation, traffic, currentDistance,
-											ownAltitude, ownVspeed, closingAlertsSeconds, closingAlertsDistanceMinimum,
-											closingAlertsCriticalAlertRatio, closingAlertsAltitude)
-										: null,
-								currentDistance, traffic.mVertVelocity
-						));
-						lastDistanceUpdate.put(traffic.mCallSign, distanceCalcUpdateKey);
+                        final AircraftTrig ownAcTrig = new AircraftTrig(ownLocation), trafficAcTrig = new AircraftTrig(traffic);
+                        if ((currentDistance = greatCircleDistance(ownAcTrig, trafficAcTrig)) < trafficAlertsDistanceMinimum) {
+                            upsertTrafficAlertQueue(new Alert(traffic.mCallSign,
+                                    nearestClockHourFromHeadingAndLocations(ownAcTrig, trafficAcTrig),
+                                    altDiff,
+                                    isAudibleClosingAlerts
+                                            ? determineClosingEvent(ownAcTrig, ownLocation.getSpeed() * MPS_TO_KNOTS_CONV,
+                                                trafficAcTrig, traffic.mHorizVelocity, currentDistance,
+                                                ownAltitude, traffic.mAltitude, ownVspeed, traffic.mVertVelocity,
+                                                closingAlertsSeconds, closingAlertsDistanceMinimum,
+                                                closingAlertsCriticalAlertRatio, closingAlertsAltitude)
+                                            : null,
+                                    currentDistance, traffic.mVertVelocity
+                            ));
+                            lastDistanceUpdate.put(traffic.mCallSign, distanceCalcUpdateKey);
+                        }
 					}
 				}
 			}
@@ -587,20 +628,21 @@ public class AudibleTrafficAlerts implements Runnable {
         return val == null ? defaultVal : val;
     }
 
-    private static Alert.ClosingEvent determineClosingEvent(final Location ownLocation, final Traffic traffic, final double currentDistance,
-        final int ownAltitude, final int ownVspeed, final int closingTimeThresholdSeconds, final float closestApproachThresholdNmi,
-        final float criticalClosingAlertRatio, final float closingAlertAltitude)
+    private static Alert.ClosingEvent determineClosingEvent(AircraftTrig ownAcTrig, float ownSpeed,
+        AircraftTrig trafficAcTrig, float trafficSpeed, final double currentDistance, final int ownAltitude,
+        final int trafficAltitude, final int ownVspeed, final int trafficVspeed, final int closingTimeThresholdSeconds,
+        final float closestApproachThresholdNmi, final float criticalClosingAlertRatio, final float closingAlertAltitude)
     {
-        final int ownSpeedInKts = Math.round(MPS_TO_KNOTS_CONV * ownLocation.getSpeed());
-        final double closingEventTimeSec = Math.abs(closestApproachTime(
-                traffic.mLat, traffic.mLon, ownLocation.getLatitude(), ownLocation.getLongitude(),
-                traffic.mHeading, ownLocation.getBearing(), traffic.mHorizVelocity, ownSpeedInKts
-        ))*60.00*60.00;
-        if (closingEventTimeSec < closingTimeThresholdSeconds) {    // Gate #1: Time threshold met
-            final double[] myCaLoc = locationAfterTime(ownLocation.getLatitude(), ownLocation.getLongitude(),
-                    ownLocation.getBearing(), ownSpeedInKts, closingEventTimeSec/3600.000, ownAltitude, ownVspeed);
-            final double[] theirCaLoc = locationAfterTime(traffic.mLat, traffic.mLon, traffic.mHeading,
-                    traffic.mHorizVelocity, closingEventTimeSec/3600.000, traffic.mAltitude, traffic.mVertVelocity);
+        ownAcTrig.computeHeadingTrig();
+        trafficAcTrig.computeHeadingTrig();
+        final int ownSpeedInKts = Math.round(MPS_TO_KNOTS_CONV * ownSpeed);
+        final double closingEventTimeSec = Math.abs(closestApproachTime(trafficAcTrig, ownAcTrig,
+                trafficSpeed, ownSpeedInKts)) * 60.00 * 60.00;
+        if (closingEventTimeSec < closingTimeThresholdSeconds) { // Gate #1: Time threshold met
+            final double[] myCaLoc = locationAfterTime(ownAcTrig, ownSpeedInKts,
+                    closingEventTimeSec/3600.000, ownAltitude, ownVspeed);
+            final double[] theirCaLoc = locationAfterTime(trafficAcTrig, trafficSpeed,
+                    closingEventTimeSec/3600.000, trafficAltitude, trafficVspeed);
             final double caDistance;
             final double altDiff = myCaLoc[2] - theirCaLoc[2];
             // Gate #2: If traffic will be within configured "cylinder" of closing/TCPA alerts, create a closing event
@@ -650,34 +692,47 @@ public class AudibleTrafficAlerts implements Runnable {
         }
     }
 
-    protected static double angleFromCoordinate(final double lat1, final double long1, final double lat2, final double long2) {
-        final double lat1Rad = Math.toRadians(lat1);
-        final double long1Rad = Math.toRadians(long1);
-        final double lat2Rad = Math.toRadians(lat2);
-        final double long2Rad = Math.toRadians(long2);
+    protected static double angleFromCoordinate(AircraftTrig ac1Trig, AircraftTrig ac2Trig) {
+        final double dLon = (ac2Trig.lonRad - ac1Trig.lonRad);
 
-        final double dLon = (long2Rad - long1Rad);
-
-        final double y = Math.sin(dLon) * Math.cos(lat2Rad);
-        final double x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad)
-                * Math.cos(lat2Rad) * Math.cos(dLon);
+        final double y = Math.sin(dLon) * ac2Trig.latCos;
+        final double x = ac1Trig.latCos * ac2Trig.latSin - ac1Trig.latSin
+                * ac2Trig.latCos * Math.cos(dLon);
 
         final double bearingRad = Math.atan2(y, x);
 
         return  (Math.toDegrees(bearingRad) + 360) % 360;
     }
 
-    protected static int nearestClockHourFromHeadingAndLocations(
-            final double lat1, final double long1, final double lat2, final double long2, final double myBearing)
+    protected static int nearestClockHourFromHeadingAndLocations(AircraftTrig ownAcTrig, AircraftTrig trafficAcTrig)
     {
-        final int nearestClockHour = (int) Math.round(relativeBearingFromHeadingAndLocations(lat1, long1, lat2, long2, myBearing)/30.0);
+        final int nearestClockHour = (int) Math.round(relativeBearingFromHeadingAndLocations(ownAcTrig, trafficAcTrig)/30.0);
         return nearestClockHour != 0 ? nearestClockHour : 12;
     }
 
-    protected static double relativeBearingFromHeadingAndLocations(final double lat1, final double long1,
-                               final double lat2, final double long2,  final double myBearing)
+    protected static double relativeBearingFromHeadingAndLocations(AircraftTrig ownTrig, AircraftTrig trafficTrig)
     {
-        return (angleFromCoordinate(lat1, long1, lat2, long2) - myBearing + 360) % 360;
+        return (angleFromCoordinate(ownTrig, trafficTrig) - ownTrig.heading + 360) % 360;
+    }
+
+    /**
+     * Great circle distance between two lat/lon's via Haversine formula, Java impl courtesy of https://introcs.cs.princeton.edu/java/12types/GreatCircle.java.html
+     * @param ac1Trig Aircraft 1 position/heading and computed trig
+     * @param ac2Trig Aircraft 1 position/heading and computed trig
+     * @return Great circle distance between two points
+     */
+    private static double greatCircleDistance(AircraftTrig ac1Trig, AircraftTrig ac2Trig) {
+        /*
+         * Compute using Haversine formula
+         */
+        final double a = Math.pow(Math.sin((ac2Trig.latRad-ac1Trig.latRad)/2), 2)
+                + ac1Trig.latCos * ac2Trig.latCos * Math.pow(Math.sin((ac2Trig.lonRad-ac1Trig.lonRad)/2), 2);
+
+        // great circle distance in radians
+        final double angle2 = 2.0 * Math.asin(Math.min(1, Math.sqrt(a)));
+
+        // convert back to degrees, and each degree on a great circle of Earth is 60 nautical miles...unless nearer the poles (TODO: account for this)
+        return 60.0 * Math.toDegrees(angle2);
     }
 
     /**
@@ -688,7 +743,7 @@ public class AudibleTrafficAlerts implements Runnable {
      * @param lon2 Longitude 2
      * @return Great circle distance between two points
      */
-    private static double greatCircleDistance(final double lat1, final double lon1, final double lat2, final double lon2) {
+    private static double greatCircleDistance(double lat1, double lon1, double lat2, double lon2) {
         final double x1 = Math.toRadians(lat1);
         final double y1 = Math.toRadians(lon1);
         final double x2 = Math.toRadians(lat2);
@@ -701,45 +756,42 @@ public class AudibleTrafficAlerts implements Runnable {
                 + Math.cos(x1) * Math.cos(x2) * Math.pow(Math.sin((y2-y1)/2), 2);
 
         // great circle distance in radians
-        final double angle2 = 2.0 * Math.asin(Math.min(1, Math.sqrt(a)));
+        final double angle2 = 2 * Math.asin(Math.min(1, Math.sqrt(a)));
 
         // convert back to degrees, and each degree on a great circle of Earth is 60 nautical miles
-        return 60.0 * Math.toDegrees(angle2);
+        return 60 * Math.toDegrees(angle2);
     }
 
     /**
      * Time to closest approach between two 2-d kinematic vectors; credit to: https://math.stackexchange.com/questions/1775476/shortest-distance-between-two-objects-moving-along-two-lines
-     * @param lat1 Latitude 1
-     * @param lon1 Longitude 2
-     * @param lat2 Latitude 2
-     * @param lon2 Longitude 2
-     * @param heading1 Heading 1
-     * @param heading2 Heading 2
+     * @param ac1Trig Aircraft one position trig info
+     * @param ac2Trig Aircraft two position trig info
      * @param velocity1 Velocity 1
      * @param velocity2 Velocity 2
      * @return Time (in units of velocity) of closest point of approach
      */
-    protected static double closestApproachTime(final double lat1, final double lon1, final double lat2, final double lon2,
-                                           final float heading1, final float heading2, final int velocity1, final int velocity2)
+    protected static double closestApproachTime(AircraftTrig ac1Trig, AircraftTrig ac2Trig,
+                                                float velocity1, float velocity2)
     {
         // Use cosine of average of two latitudes, to give some weighting for lesser intra-lon distance at higher latitudes
-        final double heading1Rad = Math.toRadians(heading1), heading2Rad = Math.toRadians(heading2);
-        final double a = (lon2 - lon1) * (60.0000 * Math.cos(Math.toRadians((lat1+lat2)/2.0000)));
-        final double b = velocity2*Math.sin(heading2Rad) - velocity1*Math.sin(heading1Rad);
-        final double c = (lat2 - lat1) * 60.0000;
-        final double d = velocity2*Math.cos(heading2Rad) - velocity1*Math.cos(heading1Rad);
+        //final double heading1Rad = Math.toRadians(heading1), heading2Rad = Math.toRadians(heading2);
+        final double a = (ac2Trig.lonDeg - ac1Trig.lonDeg) * (60.0000 * Math.cos(Math.toRadians((ac1Trig.latDeg+ac2Trig.latDeg)/2.0000)));
+        final double b = velocity2*ac2Trig.headingSin - velocity1*ac1Trig.headingSin;
+        final double c = (ac2Trig.latDeg - ac1Trig.latDeg) * 60.0000;
+        final double d = velocity2*ac2Trig.headingCos - velocity1*ac1Trig.headingCos;
 
         return - ((a*b + c*d) / (b*b + d*d));
     }
 
-    protected static double[] locationAfterTime(final double lat, final double lon, final float heading, final float velocityInKt, final double timeInHrs, final float altInFeet, final float vspeedInFpm) {
-        final double headingRad = Math.toRadians(heading);
-        final double newLat =  lat + Math.cos(headingRad) * (velocityInKt/60.00000) * timeInHrs;
+    protected static double[] locationAfterTime(AircraftTrig acTrig, final float velocityInKt,
+                                                double timeInHrs, float altInFeet, float vspeedInFpm)
+    {
+        final double newLat =  acTrig.latDeg + acTrig.headingCos * (velocityInKt/60.00000) * timeInHrs;
         return new double[]  {
                 newLat,
-                lon + Math.sin(headingRad)
+                acTrig.lonDeg + acTrig.headingSin
                         // Again, use cos of average lat to give some weighting based on shorter intra-lon distance changes at higher latitudes
-                        * (velocityInKt / (60.00000*Math.cos(Math.toRadians((newLat+lat)/2.0000))))
+                        * (velocityInKt / (60.00000*Math.cos(Math.toRadians((newLat+acTrig.latDeg)/2.0000))))
                         * timeInHrs,
                 altInFeet + (vspeedInFpm * (60.0 * timeInHrs))
         };
